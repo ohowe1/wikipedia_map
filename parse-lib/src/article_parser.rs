@@ -6,44 +6,19 @@ use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::{BufRead, BufReader, Read};
 use log::debug;
-use serde::{Serialize, Serializer};
-use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ContentPage {
     pub title: String,
     pub title_hash: u64,
     pub links: Vec<u64>,
 }
 
-impl Serialize for ContentPage {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer,
-    {
-        let mut s = serializer.serialize_struct("ContentPage", 3)?;
-        s.serialize_field("title", &self.title)?;
-        s.serialize_field("title_hash", &self.title_hash)?;
-        s.serialize_field("links", &self.links)?;
-        s.end()
-    }
-}
-
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Redirect {
     title_hash: u64,
     to_hash: u64,
-}
-
-impl Serialize for Redirect {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut s = serializer.serialize_struct("Redirect", 2)?;
-
-        s.serialize_field("title_hash", &self.title_hash)?;
-        s.serialize_field("to_hash", &self.to_hash)?;
-        s.end()
-    }
 }
 
 enum Page {
@@ -73,7 +48,7 @@ pub struct ArticleParser {
 
 
 impl ArticleParser {
-    const UPDATE_FREQ: u64 = 1024 * 1024;
+    const UPDATE_FREQ: u64 = 1024 * 1024 * 500;
     const BUFFER_SIZE: usize = 1024 * 1024;
 
     pub fn new() -> Self {
@@ -115,7 +90,8 @@ impl ArticleParser {
         self.content_pages.extend(other.content_pages);
         self.redirects.extend(other.redirects);
     }
-    pub fn parse_xml<R: Read>(&mut self, content: &mut BufReader<R>, read_until: Option<u64>, progress_callback: Option<fn(u64, Option<u64>)>) {
+    pub fn parse_xml<R: Read, F>(&mut self, content: &mut BufReader<R>, read_until: Option<u64>, progress_callback: Option<F>)
+    where F: Fn(u64, Option<u64>) {
         let mut reader = Reader::from_reader(content);
         reader.config_mut().allow_unmatched_ends = true;
 
@@ -132,17 +108,17 @@ impl ArticleParser {
                     if e.name().as_ref() == PageTags::PAGE {
                         let article = self.parse_page(&mut reader);
 
-                        match article {
-                            Page::Content(content) => self.content_pages.push(content),
-                            Page::Redirect(redirect) => {
-                                self.redirects.insert(redirect.title_hash, redirect.to_hash);
-                            }
-                        }
+                        // match article {
+                        //     Page::Content(content) => self.content_pages.push(content),
+                        //     Page::Redirect(redirect) => {
+                        //         self.redirects.insert(redirect.title_hash, redirect.to_hash);
+                        //     }
+                        // }
                     }
 
                     let buffer_position = reader.buffer_position();
                     if last_update.is_some() && buffer_position > last_update.unwrap() + Self::UPDATE_FREQ {
-                        if let Some(progress_callback) = progress_callback {
+                        if let Some(ref progress_callback) = progress_callback {
                             progress_callback(buffer_position, read_until);
                             last_update = Some(buffer_position);
                         }
@@ -298,12 +274,15 @@ impl ArticleParser {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::test_init;
     use super::*;
+
+    pub fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
 
     #[test]
     fn hash_matches() {
-        test_init();
+        init();
 
         // Should reference same article
         let link1 = "WikipediaLink";
@@ -331,7 +310,7 @@ mod tests {
 
     #[test]
     fn merge_parsers() {
-        test_init();
+        init();
 
         let mut parser1 = ArticleParser::new();
         parser1.redirects.extend([(1, 2), (3, 4)]);
@@ -366,7 +345,7 @@ mod tests {
 
     #[test]
     fn get_links() {
-        test_init();
+        init();
         let example_article = "This is a [[Wikipedia]] article. It can contain many [[Web Link#Web|links]] that have [[Alias|aliases]] and also reference files, categories and interlanguage links: [[File:A file]], [[Category::A Category]], [[fr:french]]. These should not be included. Hopefully it doesn't die if there's a non-ended link: [[";
 
         assert_eq!(

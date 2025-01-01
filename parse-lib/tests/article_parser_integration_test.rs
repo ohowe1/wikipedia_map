@@ -4,17 +4,20 @@ use std::io::{BufReader, Seek, SeekFrom};
 use std::path::PathBuf;
 use log::debug;
 use parse_lib::article_parser::ArticleParser;
-use parse_lib::util::test_init;
 
+pub fn init() {
+    let _ = env_logger::builder().is_test(true).try_init();
+}
 #[test]
 fn parse_xml_test() {
-    test_init();
+    init();
     debug!("Parse XML Test");
 
     let mut reader = BufReader::new(File::open(PathBuf::from("tests").join("data").join("test_data.xml")).expect("Failed to read data file"));
     let mut parser = ArticleParser::new();
     
-    parser.parse_xml(&mut reader, None, None);
+    // todo: make the explicit template thing not necessary?
+    parser.parse_xml(&mut reader, None, None::<fn(u64, Option<u64>)>);
     let title_to_hash: HashMap<String, u64> = HashMap::from_iter(parser.content_pages().iter().map(|page| (page.title.clone(), page.title_hash)));
 
     // Content pages
@@ -36,7 +39,7 @@ fn parse_xml_test() {
 
 #[test]
 fn parse_xml_bounded() {
-    test_init();
+    init();
     debug!("Parse XML Bounded Test");
 
     let mut reader = BufReader::new(File::open(PathBuf::from("tests").join("data").join("test_data.xml")).expect("Failed to read data file"));
@@ -46,7 +49,7 @@ fn parse_xml_bounded() {
     let mut parser = ArticleParser::new();
 
     // go till end of <text> on line 23.
-    parser.parse_xml(&mut reader, Some(587), None);
+    parser.parse_xml(&mut reader, Some(587), None::<fn(u64, Option<u64>)>);
 
     // Content pages
     assert_eq!(parser.content_pages().len(), 2);
