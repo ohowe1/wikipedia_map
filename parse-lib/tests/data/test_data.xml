@@ -1,0 +1,33 @@
+<mediawiki>
+    <notapage>Text</notapage>
+    <page>
+        <title>Article1</title>
+        <redirect title="Article 1" />
+        <revision>
+            <data>hi</data>
+        </revision>
+    </page>
+    <page>
+        <title>Article 1</title>
+        <revision>
+            <text>This text should be [[ignored]]</text>
+        </revision>
+        <text>
+            This links to some articles like the [[Article 2|second one]]. And a second time: [[Article 2]]. And sections on this article [#section] or other ones [[Article 3#section]].
+
+            You can(not) read the article in other languages [[es:Article 1]].
+        </text>
+    </page>
+    <page>
+        <title>Article 2</title>
+        <text>
+            This is another article. It links to these: [[Article 1]].
+        </text>
+    </page>
+    <page>
+        <title>Article 3</title>
+        <text>
+            This is a lame empty article :(.
+        </text>
+    </page>
+</mediawiki>

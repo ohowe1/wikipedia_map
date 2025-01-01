@@ -1,11 +1,6 @@
-[package]
-name = "wikipedia_map"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-[dependencies]
-bzip2 = "0.5.0"
-quick-xml = "0.37.1"
-regex = "1.11.1"
-log = "0.4.22"
-serde = "1.0.216"
+members = [
+    "parse-lib",
+    "app"
+]
