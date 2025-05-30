@@ -103,17 +103,18 @@ impl ArticleParser {
                     break;
                 }
             }
+            self.read_buffer.clear();
             match reader.read_event_into(&mut self.read_buffer).unwrap() {
                 Event::Start(ref e) => {
                     if e.name().as_ref() == PageTags::PAGE {
                         let article = self.parse_page(&mut reader);
 
-                        // match article {
-                        //     Page::Content(content) => self.content_pages.push(content),
-                        //     Page::Redirect(redirect) => {
-                        //         self.redirects.insert(redirect.title_hash, redirect.to_hash);
-                        //     }
-                        // }
+                        match article {
+                            Page::Content(content) => self.content_pages.push(content),
+                            Page::Redirect(redirect) => {
+                                self.redirects.insert(redirect.title_hash, redirect.to_hash);
+                            }
+                        }
                     }
 
                     let buffer_position = reader.buffer_position();
